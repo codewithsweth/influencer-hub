@@ -221,7 +221,7 @@ export const fetchChannelAnalytics = async (
     );
 
     const deviceResponse = await fetch(
-      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==${channelId}&startDate=${startDate}&endDate=${endDate}&dimensions=deviceType&metrics=viewerPercentage&sort=-viewerPercentage`,
+      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==${channelId}&startDate=${startDate}&endDate=${endDate}&dimensions=deviceType&metrics=views,estimatedMinutesWatched&sort=-views`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -418,10 +418,24 @@ export const fetchChannelAnalytics = async (
           };
         });
       })(),
-      deviceTypes: (deviceData.rows || []).map((row: any[]) => ({
-        deviceType: row[0] === 'DESKTOP' ? 'Desktop' : row[0] === 'MOBILE' ? 'Mobile' : row[0] === 'TABLET' ? 'Tablet' : row[0] === 'TV' ? 'TV' : row[0],
-        percentage: Math.round(row[1] * 100) / 100,
-      })),
+      deviceTypes: (() => {
+        const totalDeviceViews = (deviceData.rows || []).reduce((sum: number, row: any[]) => sum + row[1], 0);
+        console.log('[API] Total device views:', totalDeviceViews);
+        return (deviceData.rows || []).map((row: any[]) => {
+          const deviceType = row[0];
+          const views = row[1];
+          const percentage = totalDeviceViews > 0 ? (views / totalDeviceViews) * 100 : 0;
+          const formattedType = deviceType === 'DESKTOP' ? 'Desktop' :
+                               deviceType === 'MOBILE' ? 'Mobile' :
+                               deviceType === 'TABLET' ? 'Tablet' :
+                               deviceType === 'TV' ? 'TV' : deviceType;
+          console.log('[API] Device mapping:', deviceType, '→', formattedType, `(${views} views, ${percentage.toFixed(1)}%)`);
+          return {
+            deviceType: formattedType,
+            percentage: Math.round(percentage * 100) / 100,
+          };
+        });
+      })(),
       subscriberWatchTime: watchTimeData.rows?.[0]?.[0] || 0,
       totalWatchTime: totalWatchTimeData.rows?.[0]?.[0] || 0,
     };
