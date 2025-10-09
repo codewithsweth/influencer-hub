@@ -2,7 +2,7 @@ import { OAuthConfig } from '../types/influencer';
 
 const OAUTH_CONFIG: OAuthConfig = {
   clientId: '418254354787-i4qruhsk2e926pbp4eifcpfbr4mug32i.apps.googleusercontent.com',
-  redirectUri: window.location.origin + '/oauth/callback',
+  redirectUri: window.location.origin,
   scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/userinfo.profile',
 };
 
