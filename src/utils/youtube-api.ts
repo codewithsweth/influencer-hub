@@ -221,7 +221,7 @@ export const fetchChannelAnalytics = async (
     );
 
     const deviceResponse = await fetch(
-      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==${channelId}&startDate=${startDate}&endDate=${endDate}&dimensions=deviceType&metrics=views,estimatedMinutesWatched&sort=-views&maxResults=10`,
+      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==${channelId}&startDate=${startDate}&endDate=${endDate}&dimensions=deviceType&metrics=viewerPercentage&sort=-viewerPercentage`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -418,18 +418,10 @@ export const fetchChannelAnalytics = async (
           };
         });
       })(),
-      deviceTypes: (() => {
-        const totalViews = (deviceData.rows || []).reduce((sum: number, row: any[]) => sum + row[1], 0);
-        return (deviceData.rows || []).map((row: any[]) => {
-          const deviceType = row[0] === 'DESKTOP' ? 'Desktop' : row[0] === 'MOBILE' ? 'Mobile' : row[0] === 'TABLET' ? 'Tablet' : row[0] === 'TV' ? 'TV' : row[0];
-          const views = row[1];
-          const percentage = totalViews > 0 ? (views / totalViews) * 100 : 0;
-          return {
-            deviceType,
-            percentage: Math.round(percentage * 100) / 100,
-          };
-        });
-      })(),
+      deviceTypes: (deviceData.rows || []).map((row: any[]) => ({
+        deviceType: row[0] === 'DESKTOP' ? 'Desktop' : row[0] === 'MOBILE' ? 'Mobile' : row[0] === 'TABLET' ? 'Tablet' : row[0] === 'TV' ? 'TV' : row[0],
+        percentage: Math.round(row[1] * 100) / 100,
+      })),
       subscriberWatchTime: watchTimeData.rows?.[0]?.[0] || 0,
       totalWatchTime: totalWatchTimeData.rows?.[0]?.[0] || 0,
     };
