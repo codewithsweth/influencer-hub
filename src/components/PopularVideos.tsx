@@ -1,5 +1,4 @@
-import { useNavigate } from 'react-router-dom';
-import { Eye, ThumbsUp, MessageSquare, TrendingUp, BarChart3 } from 'lucide-react';
+import { Eye, ThumbsUp, MessageSquare, TrendingUp } from 'lucide-react';
 import { YouTubeVideo } from '../types/influencer';
 import { formatNumber, formatDuration } from '../utils/youtube-api';
 
@@ -11,8 +10,6 @@ export function PopularVideos({ videos = [] }: PopularVideosProps) {
   console.log('\n[PopularVideos] Rendering popular videos');
   console.log('[PopularVideos] Videos count:', videos.length);
   console.log('[PopularVideos] Videos:', videos);
-
-  const navigate = useNavigate();
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -43,8 +40,7 @@ export function PopularVideos({ videos = [] }: PopularVideosProps) {
           {videos.map((video, index) => (
             <div
               key={video.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all group cursor-pointer"
-              onClick={() => navigate(`/video/${video.id}`)}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all group"
             >
               <div className="relative">
                 <img
@@ -86,27 +82,14 @@ export function PopularVideos({ videos = [] }: PopularVideosProps) {
                   </div>
                 </div>
 
-                <div className="flex gap-2 mt-4">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/video/${video.id}`);
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    Analytics
-                  </button>
-                  <a
-                    href={`https://www.youtube.com/watch?v=${video.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-1 text-center bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition-colors"
-                  >
-                    YouTube
-                  </a>
-                </div>
+                <a
+                  href={`https://www.youtube.com/watch?v=${video.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 block text-center bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition-colors"
+                >
+                  Watch on YouTube
+                </a>
               </div>
             </div>
           ))}

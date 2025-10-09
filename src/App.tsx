@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ConnectButton } from './components/ConnectButton';
 import { ChannelCard } from './components/ChannelCard';
 import { VideoList } from './components/VideoList';
@@ -8,7 +7,6 @@ import { ErrorMessage } from './components/ErrorMessage';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { PopularVideos } from './components/PopularVideos';
 import { DemographicsAnalytics } from './components/DemographicsAnalytics';
-import VideoAnalyticsPage from './components/VideoAnalyticsPage';
 import { Influencer } from './types/influencer';
 import { parseOAuthCallback, clearOAuthCallback } from './utils/youtube-oauth';
 import { fetchChannelData, fetchChannelVideos, fetchPopularVideos, fetchChannelAnalytics } from './utils/youtube-api';
@@ -174,7 +172,6 @@ function App() {
   console.log('[App Render] error:', error);
 
   return (
-    <Router>
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -205,9 +202,6 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Routes>
-          <Route path="/" element={
-            <>
         {loading && (
           <>
             {console.log('[App Render] Showing loading spinner')}
@@ -263,22 +257,6 @@ function App() {
           </div>
           </>
         )}
-            </>
-          } />
-          <Route path="/video/:videoId" element={
-            influencer ? (
-              <VideoAnalyticsPage
-                accessToken={influencer.accessToken}
-                channelId={influencer.channelId}
-                videos={[...influencer.videos, ...influencer.popularVideos]}
-              />
-            ) : (
-              <div className="flex items-center justify-center py-20">
-                <ErrorMessage message="Please connect your YouTube account first" />
-              </div>
-            )
-          } />
-        </Routes>
       </main>
 
       <footer className="bg-white border-t border-gray-200 mt-16">
@@ -289,7 +267,6 @@ function App() {
         </div>
       </footer>
     </div>
-    </Router>
   );
 }
 

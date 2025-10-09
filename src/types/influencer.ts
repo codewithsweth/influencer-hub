@@ -73,28 +73,6 @@ export interface Influencer {
   connectedAt: string;
 }
 
-export interface VideoAnalytics {
-  videoId: string;
-  demographics: {
-    age: DemographicData[];
-    gender: GenderData[];
-    ageGenderBreakdown: AgeGenderBreakdown[];
-  };
-  geography: GeographyData[];
-  deviceTypes: DeviceData[];
-  watchTime: {
-    estimatedMinutesWatched: number;
-    averageViewDuration: number;
-    averageViewPercentage: number;
-  };
-  engagement: {
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-  };
-}
-
 export interface OAuthConfig {
   clientId: string;
   redirectUri: string;
