@@ -10,6 +10,22 @@ export interface YouTubeChannel {
   publishedAt: string;
 }
 
+export interface VideoAnalytics {
+  watchTime: number;
+  averageViewDuration: number;
+  impressions: number;
+  clickThroughRate: number;
+  subscribersGained: number;
+  demographics: {
+    age: DemographicData[];
+    gender: GenderData[];
+    ageGenderBreakdown: AgeGenderBreakdown[];
+  };
+  geography: GeographyData[];
+  deviceTypes: DeviceData[];
+  subscriberWatchTime: number;
+}
+
 export interface YouTubeVideo {
   id: string;
   title: string;
@@ -20,6 +36,7 @@ export interface YouTubeVideo {
   likeCount: number;
   commentCount: number;
   duration: string;
+  analytics?: VideoAnalytics;
 }
 
 export interface DemographicData {

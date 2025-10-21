@@ -1,4 +1,4 @@
-import { YouTubeChannel, YouTubeVideo, ChannelAnalytics } from '../types/influencer';
+import { YouTubeChannel, YouTubeVideo, ChannelAnalytics, VideoAnalytics } from '../types/influencer';
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const YOUTUBE_ANALYTICS_API = 'https://youtubeanalytics.googleapis.com/v2';
@@ -165,6 +165,283 @@ export const fetchPopularVideos = async (
   const sortedVideos = videos.sort((a, b) => b.viewCount - a.viewCount).slice(0, 10);
   console.log('[API] Top 10 popular videos (after sorting):', sortedVideos);
   return sortedVideos;
+};
+
+export const fetchVideoAnalytics = async (
+  accessToken: string,
+  videoId: string
+): Promise<VideoAnalytics> => {
+  const endDate = new Date().toISOString().split('T')[0];
+  const startDate = '2005-02-14';
+
+  console.log(`\n[API] Fetching video analytics for video: ${videoId}`);
+  console.log(`[API] Date range: ${startDate} to ${endDate}`);
+
+  try {
+    const demographicsResponse = await fetch(
+      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&dimensions=ageGroup,gender&metrics=viewerPercentage&filters=video==${videoId}&sort=-viewerPercentage`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const geographyResponse = await fetch(
+      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&dimensions=country&metrics=views,estimatedMinutesWatched&filters=video==${videoId}&sort=-views&maxResults=10`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const deviceResponse = await fetch(
+      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&dimensions=deviceType&metrics=views,estimatedMinutesWatched&filters=video==${videoId}&sort=-views`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const performanceResponse = await fetch(
+      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=estimatedMinutesWatched,averageViewDuration,views&filters=video==${videoId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const trafficResponse = await fetch(
+      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=cardImpressions,cardClickRate&filters=video==${videoId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const subscriberResponse = await fetch(
+      `${YOUTUBE_ANALYTICS_API}/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=subscribersGained,estimatedMinutesWatched&filters=video==${videoId};subscribedStatus==SUBSCRIBED`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    console.log('[API] Video demographics response status:', demographicsResponse.status);
+    console.log('[API] Video geography response status:', geographyResponse.status);
+    console.log('[API] Video device response status:', deviceResponse.status);
+    console.log('[API] Video performance response status:', performanceResponse.status);
+    console.log('[API] Video traffic response status:', trafficResponse.status);
+    console.log('[API] Video subscriber response status:', subscriberResponse.status);
+
+    const demographicsData = demographicsResponse.ok ? await demographicsResponse.json() : { rows: [] };
+    const geographyData = geographyResponse.ok ? await geographyResponse.json() : { rows: [] };
+    const deviceData = deviceResponse.ok ? await deviceResponse.json() : { rows: [] };
+    const performanceData = performanceResponse.ok ? await performanceResponse.json() : { rows: [] };
+    const trafficData = trafficResponse.ok ? await trafficResponse.json() : { rows: [] };
+    const subscriberData = subscriberResponse.ok ? await subscriberResponse.json() : { rows: [] };
+
+    console.log('[API] Video demographics data:', demographicsData);
+    console.log('[API] Video geography data:', geographyData);
+    console.log('[API] Video device data:', deviceData);
+    console.log('[API] Video performance data:', performanceData);
+    console.log('[API] Video traffic data:', trafficData);
+    console.log('[API] Video subscriber data:', subscriberData);
+
+    const ageMap = new Map<string, number>();
+    const genderMap = new Map<string, number>();
+    const ageGenderMap = new Map<string, { male: number; female: number }>();
+
+    if (demographicsData.rows) {
+      demographicsData.rows.forEach((row: any[]) => {
+        const [ageGroup, gender, percentage] = row;
+        ageMap.set(ageGroup, (ageMap.get(ageGroup) || 0) + percentage);
+        genderMap.set(gender, (genderMap.get(gender) || 0) + percentage);
+
+        if (!ageGenderMap.has(ageGroup)) {
+          ageGenderMap.set(ageGroup, { male: 0, female: 0 });
+        }
+        const ageGenderData = ageGenderMap.get(ageGroup)!;
+        if (gender.toLowerCase() === 'male') {
+          ageGenderData.male += percentage;
+        } else if (gender.toLowerCase() === 'female') {
+          ageGenderData.female += percentage;
+        }
+      });
+    }
+
+    const formatGender = (gender: string): string => {
+      const lowerGender = gender.toLowerCase();
+      if (lowerGender === 'male' || lowerGender === 'm') return 'Male';
+      if (lowerGender === 'female' || lowerGender === 'f') return 'Female';
+      if (lowerGender === 'user_specified') return 'Other';
+      return 'Other';
+    };
+
+    const formatAgeGroup = (ageGroup: string): string => {
+      if (ageGroup === 'age13-17') return '13-17';
+      if (ageGroup === 'age18-24') return '18-24';
+      if (ageGroup === 'age25-34') return '25-34';
+      if (ageGroup === 'age35-44') return '35-44';
+      if (ageGroup === 'age45-54') return '45-54';
+      if (ageGroup === 'age55-64') return '55-64';
+      if (ageGroup === 'age65-') return '65+';
+      return ageGroup;
+    };
+
+    const ageGroupOrder = ['age13-17', 'age18-24', 'age25-34', 'age35-44', 'age45-54', 'age55-64', 'age65-'];
+
+    const countryCodeMap: Record<string, string> = {
+      'US': 'United States',
+      'IN': 'India',
+      'GB': 'United Kingdom',
+      'CA': 'Canada',
+      'AU': 'Australia',
+      'DE': 'Germany',
+      'FR': 'France',
+      'BR': 'Brazil',
+      'MX': 'Mexico',
+      'JP': 'Japan',
+      'KR': 'South Korea',
+      'IT': 'Italy',
+      'ES': 'Spain',
+      'NL': 'Netherlands',
+      'SE': 'Sweden',
+      'PL': 'Poland',
+      'TR': 'Turkey',
+      'RU': 'Russia',
+      'ID': 'Indonesia',
+      'IQ': 'Iraq',
+      'NP': 'Nepal',
+      'PH': 'Philippines',
+      'VN': 'Vietnam',
+      'TH': 'Thailand',
+      'MY': 'Malaysia',
+      'SG': 'Singapore',
+      'AR': 'Argentina',
+      'CL': 'Chile',
+      'CO': 'Colombia',
+      'PE': 'Peru',
+      'ZA': 'South Africa',
+      'EG': 'Egypt',
+      'NG': 'Nigeria',
+      'KE': 'Kenya',
+      'PK': 'Pakistan',
+      'BD': 'Bangladesh',
+      'AE': 'United Arab Emirates',
+      'SA': 'Saudi Arabia',
+      'IL': 'Israel',
+      'NZ': 'New Zealand',
+      'CH': 'Switzerland',
+      'AT': 'Austria',
+      'BE': 'Belgium',
+      'DK': 'Denmark',
+      'FI': 'Finland',
+      'NO': 'Norway',
+      'IE': 'Ireland',
+      'PT': 'Portugal',
+      'GR': 'Greece',
+      'CZ': 'Czech Republic',
+      'RO': 'Romania',
+      'HU': 'Hungary',
+      'UA': 'Ukraine',
+      'JO': 'Jordan',
+      'LB': 'Lebanon',
+    };
+
+    const performanceRow = performanceData.rows?.[0] || [0, 0, 0];
+    const trafficRow = trafficData.rows?.[0] || [0, 0];
+    const subscriberRow = subscriberData.rows?.[0] || [0, 0];
+
+    const analyticsData: VideoAnalytics = {
+      watchTime: performanceRow[0] || 0,
+      averageViewDuration: performanceRow[1] || 0,
+      impressions: trafficRow[0] || 0,
+      clickThroughRate: trafficRow[1] || 0,
+      subscribersGained: subscriberRow[0] || 0,
+      demographics: {
+        age: Array.from(ageMap.entries()).map(([ageGroup, percentage]) => ({
+          ageGroup,
+          percentage: Math.round(percentage * 100) / 100,
+        })).sort((a, b) => b.percentage - a.percentage),
+        gender: Array.from(genderMap.entries()).map(([gender, percentage]) => ({
+          gender: formatGender(gender),
+          percentage: Math.round(percentage * 100) / 100,
+        })).sort((a, b) => b.percentage - a.percentage),
+        ageGenderBreakdown: ageGroupOrder
+          .filter(ageGroup => ageGenderMap.has(ageGroup))
+          .map(ageGroup => {
+            const data = ageGenderMap.get(ageGroup)!;
+            return {
+              ageGroup: formatAgeGroup(ageGroup),
+              male: Math.round(data.male * 10) / 10,
+              female: Math.round(data.female * 10) / 10,
+              total: Math.round((data.male + data.female) * 10) / 10,
+            };
+          }),
+      },
+      geography: (() => {
+        const totalViews = (geographyData.rows || []).reduce((sum: number, row: any[]) => sum + row[1], 0);
+        return (geographyData.rows || []).map((row: any[]) => {
+          const countryCode = row[0];
+          const views = row[1];
+          const estimatedMinutesWatched = row[2] || 0;
+          const percentage = totalViews > 0 ? (views / totalViews) * 100 : 0;
+          const countryName = countryCodeMap[countryCode] || countryCode;
+          return {
+            country: countryName,
+            percentage: Math.round(percentage * 100) / 100,
+            views,
+            estimatedMinutesWatched,
+          };
+        });
+      })(),
+      deviceTypes: (() => {
+        const totalDeviceViews = (deviceData.rows || []).reduce((sum: number, row: any[]) => sum + row[1], 0);
+        return (deviceData.rows || []).map((row: any[]) => {
+          const deviceType = row[0];
+          const views = row[1];
+          const percentage = totalDeviceViews > 0 ? (views / totalDeviceViews) * 100 : 0;
+          const formattedType = deviceType === 'DESKTOP' ? 'Desktop' :
+                               deviceType === 'MOBILE' ? 'Mobile' :
+                               deviceType === 'TABLET' ? 'Tablet' :
+                               deviceType === 'TV' ? 'TV' : deviceType;
+          return {
+            deviceType: formattedType,
+            percentage: Math.round(percentage * 100) / 100,
+          };
+        });
+      })(),
+      subscriberWatchTime: subscriberRow[1] || 0,
+    };
+
+    console.log('[API] Parsed video analytics data:', analyticsData);
+    return analyticsData;
+  } catch (error) {
+    console.error('[API] Failed to fetch video analytics:', error);
+    const fallbackData: VideoAnalytics = {
+      watchTime: 0,
+      averageViewDuration: 0,
+      impressions: 0,
+      clickThroughRate: 0,
+      subscribersGained: 0,
+      demographics: {
+        age: [],
+        gender: [],
+        ageGenderBreakdown: [],
+      },
+      geography: [],
+      deviceTypes: [],
+      subscriberWatchTime: 0,
+    };
+    console.log('[API] Returning fallback video analytics data:', fallbackData);
+    return fallbackData;
+  }
 };
 
 export const formatDuration = (duration: string): string => {

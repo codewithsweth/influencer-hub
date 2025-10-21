@@ -10,7 +10,7 @@ import { DemographicsAnalytics } from './components/DemographicsAnalytics';
 import { VideoInDepthAnalytics } from './components/VideoInDepthAnalytics';
 import { Influencer } from './types/influencer';
 import { parseOAuthCallback, clearOAuthCallback } from './utils/youtube-oauth';
-import { fetchChannelData, fetchChannelVideos, fetchPopularVideos, fetchChannelAnalytics } from './utils/youtube-api';
+import { fetchChannelData, fetchChannelVideos, fetchPopularVideos, fetchChannelAnalytics, fetchVideoAnalytics } from './utils/youtube-api';
 import { Youtube, LogOut } from 'lucide-react';
 
 function App() {
@@ -68,6 +68,13 @@ function App() {
       const analytics = await fetchChannelAnalytics(accessToken, channel.id);
       console.log('Analytics data received:', analytics);
 
+      if (popularVideos.length > 0) {
+        console.log('Fetching video analytics for top video...');
+        const videoAnalytics = await fetchVideoAnalytics(accessToken, popularVideos[0].id);
+        console.log('Video analytics data received:', videoAnalytics);
+        popularVideos[0].analytics = videoAnalytics;
+      }
+
       const newInfluencer: Influencer = {
         channelId: channel.id,
         channel,
@@ -117,6 +124,13 @@ function App() {
       console.log('Fetching updated analytics...');
       const analytics = await fetchChannelAnalytics(influencer.accessToken, channel.id);
       console.log('Updated analytics data:', analytics);
+
+      if (popularVideos.length > 0) {
+        console.log('Fetching video analytics for top video...');
+        const videoAnalytics = await fetchVideoAnalytics(influencer.accessToken, popularVideos[0].id);
+        console.log('Video analytics data received:', videoAnalytics);
+        popularVideos[0].analytics = videoAnalytics;
+      }
 
       const updatedInfluencer: Influencer = {
         ...influencer,
