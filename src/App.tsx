@@ -7,6 +7,7 @@ import { ErrorMessage } from './components/ErrorMessage';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { PopularVideos } from './components/PopularVideos';
 import { DemographicsAnalytics } from './components/DemographicsAnalytics';
+import { VideoInDepthAnalytics } from './components/VideoInDepthAnalytics';
 import { Influencer } from './types/influencer';
 import { parseOAuthCallback, clearOAuthCallback } from './utils/youtube-oauth';
 import { fetchChannelData, fetchChannelVideos, fetchPopularVideos, fetchChannelAnalytics } from './utils/youtube-api';
@@ -252,6 +253,9 @@ function App() {
             <ChannelCard channel={influencer.channel} />
             <AnalyticsDashboard channel={influencer.channel} videos={influencer.videos} />
             <DemographicsAnalytics analytics={influencer.analytics} />
+            {influencer.popularVideos && influencer.popularVideos.length > 0 && (
+              <VideoInDepthAnalytics video={influencer.popularVideos[0]} />
+            )}
             <PopularVideos videos={influencer.popularVideos || []} />
             <VideoList videos={influencer.videos} popularVideos={influencer.popularVideos || []} />
           </div>
