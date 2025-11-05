@@ -1,10 +1,12 @@
 import { YouTubeChannel, YouTubeVideo, ChannelAnalytics, VideoAnalytics } from '../types/influencer';
+import { getValidAccessToken } from './token-manager';
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const YOUTUBE_ANALYTICS_API = 'https://youtubeanalytics.googleapis.com/v2';
 
-export const fetchChannelData = async (accessToken: string): Promise<YouTubeChannel> => {
+export const fetchChannelData = async (channelId: string): Promise<YouTubeChannel> => {
   console.log('\n[API] Fetching channel data...');
+  const accessToken = await getValidAccessToken(channelId);
   const response = await fetch(
     `${YOUTUBE_API_BASE}/channels?part=snippet,statistics&mine=true`,
     {
@@ -41,11 +43,11 @@ export const fetchChannelData = async (accessToken: string): Promise<YouTubeChan
 };
 
 export const fetchChannelVideos = async (
-  accessToken: string,
   channelId: string,
   maxResults: number = 10
 ): Promise<YouTubeVideo[]> => {
   console.log(`\n[API] Fetching channel videos for channel: ${channelId}, maxResults: ${maxResults}`);
+  const accessToken = await getValidAccessToken(channelId);
   const searchResponse = await fetch(
     `${YOUTUBE_API_BASE}/search?part=snippet&channelId=${channelId}&order=date&type=video&maxResults=${maxResults}`,
     {
@@ -101,11 +103,11 @@ export const fetchChannelVideos = async (
 };
 
 export const fetchPopularVideos = async (
-  accessToken: string,
   channelId: string,
   maxResults: number = 50
 ): Promise<YouTubeVideo[]> => {
   console.log(`\n[API] Fetching popular videos for channel: ${channelId}, maxResults: ${maxResults}`);
+  const accessToken = await getValidAccessToken(channelId);
   const searchResponse = await fetch(
     `${YOUTUBE_API_BASE}/search?part=snippet&channelId=${channelId}&order=viewCount&type=video&maxResults=${maxResults}`,
     {
@@ -168,7 +170,7 @@ export const fetchPopularVideos = async (
 };
 
 export const fetchVideoAnalytics = async (
-  accessToken: string,
+  channelId: string,
   videoId: string
 ): Promise<VideoAnalytics> => {
   const endDate = new Date().toISOString().split('T')[0];
@@ -176,6 +178,8 @@ export const fetchVideoAnalytics = async (
 
   console.log(`\n[API] Fetching video analytics for video: ${videoId}`);
   console.log(`[API] Date range: ${startDate} to ${endDate}`);
+
+  const accessToken = await getValidAccessToken(channelId);
 
   try {
     const demographicsResponse = await fetch(
@@ -469,7 +473,6 @@ export const formatNumber = (num: number): string => {
 };
 
 export const fetchChannelAnalytics = async (
-  accessToken: string,
   channelId: string
 ): Promise<ChannelAnalytics> => {
   const endDate = new Date().toISOString().split('T')[0];
@@ -477,6 +480,8 @@ export const fetchChannelAnalytics = async (
 
   console.log(`\n[API] Fetching channel analytics for channel: ${channelId}`);
   console.log(`[API] Date range: ${startDate} to ${endDate}`);
+
+  const accessToken = await getValidAccessToken(channelId);
 
   try {
     const demographicsResponse = await fetch(

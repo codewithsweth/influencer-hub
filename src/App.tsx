@@ -11,6 +11,7 @@ import { VideoInDepthAnalytics } from './components/VideoInDepthAnalytics';
 import { Influencer } from './types/influencer';
 import { parseOAuthCallback, clearOAuthCallback } from './utils/youtube-oauth';
 import { fetchChannelData, fetchChannelVideos, fetchPopularVideos, fetchChannelAnalytics, fetchVideoAnalytics } from './utils/youtube-api';
+import { exchangeCodeForToken, deleteTokens } from './utils/token-manager';
 import { Youtube, LogOut } from 'lucide-react';
 
 function App() {
@@ -21,18 +22,17 @@ function App() {
   useEffect(() => {
     console.log('=== App Initialization ===');
     console.log('Current URL:', window.location.href);
-    console.log('Current hash:', window.location.hash);
 
-    const accessToken = parseOAuthCallback();
-    console.log('OAuth access token from callback:', accessToken);
+    const code = parseOAuthCallback();
+    console.log('OAuth authorization code from callback:', code);
 
-    if (accessToken) {
-      console.log('Fresh OAuth token detected - clearing old data and fetching new data');
+    if (code) {
+      console.log('Fresh OAuth code detected - clearing old data and exchanging for tokens');
       localStorage.removeItem('influencer');
       clearOAuthCallback();
-      handleOAuthSuccess(accessToken);
+      handleOAuthSuccess(code);
     } else {
-      console.log('No OAuth token in URL');
+      console.log('No OAuth code in URL');
       const savedInfluencer = localStorage.getItem('influencer');
       console.log('Checking localStorage:', savedInfluencer);
       if (savedInfluencer) {
@@ -45,32 +45,36 @@ function App() {
     }
   }, []);
 
-  const handleOAuthSuccess = async (accessToken: string) => {
+  const handleOAuthSuccess = async (code: string) => {
     console.log('\n=== OAuth Success Handler ===');
-    console.log('Access Token:', accessToken);
+    console.log('Authorization Code:', code);
     setLoading(true);
     setError(null);
 
     try {
+      console.log('Exchanging code for tokens...');
+      const { channelId, accessToken } = await exchangeCodeForToken(code);
+      console.log('Tokens exchanged successfully, Channel ID:', channelId);
+
       console.log('Fetching channel data...');
-      const channel = await fetchChannelData(accessToken);
+      const channel = await fetchChannelData(channelId);
       console.log('Channel data received:', channel);
 
       console.log('Fetching channel videos...');
-      const videos = await fetchChannelVideos(accessToken, channel.id);
+      const videos = await fetchChannelVideos(channelId);
       console.log(`Fetched ${videos.length} videos:`, videos);
 
       console.log('Fetching popular videos...');
-      const popularVideos = await fetchPopularVideos(accessToken, channel.id);
+      const popularVideos = await fetchPopularVideos(channelId);
       console.log(`Fetched ${popularVideos.length} popular videos:`, popularVideos);
 
       console.log('Fetching channel analytics...');
-      const analytics = await fetchChannelAnalytics(accessToken, channel.id);
+      const analytics = await fetchChannelAnalytics(channelId);
       console.log('Analytics data received:', analytics);
 
       if (popularVideos.length > 0) {
         console.log('Fetching video analytics for top video...');
-        const videoAnalytics = await fetchVideoAnalytics(accessToken, popularVideos[0].id);
+        const videoAnalytics = await fetchVideoAnalytics(channelId, popularVideos[0].id);
         console.log('Video analytics data received:', videoAnalytics);
         popularVideos[0].analytics = videoAnalytics;
       }
@@ -81,7 +85,6 @@ function App() {
         videos,
         popularVideos,
         analytics,
-        accessToken,
         connectedAt: new Date().toISOString(),
       };
 
@@ -110,24 +113,24 @@ function App() {
 
     try {
       console.log('Fetching updated channel data...');
-      const channel = await fetchChannelData(influencer.accessToken);
+      const channel = await fetchChannelData(influencer.channelId);
       console.log('Updated channel data:', channel);
 
       console.log('Fetching updated videos...');
-      const videos = await fetchChannelVideos(influencer.accessToken, channel.id);
+      const videos = await fetchChannelVideos(influencer.channelId);
       console.log(`Fetched ${videos.length} updated videos:`, videos);
 
       console.log('Fetching updated popular videos...');
-      const popularVideos = await fetchPopularVideos(influencer.accessToken, channel.id);
+      const popularVideos = await fetchPopularVideos(influencer.channelId);
       console.log(`Fetched ${popularVideos.length} updated popular videos:`, popularVideos);
 
       console.log('Fetching updated analytics...');
-      const analytics = await fetchChannelAnalytics(influencer.accessToken, channel.id);
+      const analytics = await fetchChannelAnalytics(influencer.channelId);
       console.log('Updated analytics data:', analytics);
 
       if (popularVideos.length > 0) {
         console.log('Fetching video analytics for top video...');
-        const videoAnalytics = await fetchVideoAnalytics(influencer.accessToken, popularVideos[0].id);
+        const videoAnalytics = await fetchVideoAnalytics(influencer.channelId, popularVideos[0].id);
         console.log('Video analytics data received:', videoAnalytics);
         popularVideos[0].analytics = videoAnalytics;
       }
@@ -152,33 +155,31 @@ function App() {
     }
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     console.log('\n=== Disconnect Handler ===');
     console.log('Disconnecting influencer:', influencer?.channelId);
-    console.log('Current URL hash:', window.location.hash);
-    console.log('Current localStorage before clear:', localStorage.getItem('influencer'));
 
-    // Clear localStorage
+    if (influencer?.channelId) {
+      try {
+        await deleteTokens(influencer.channelId);
+        console.log('Tokens deleted from database');
+      } catch (err) {
+        console.error('Failed to delete tokens:', err);
+      }
+    }
+
     localStorage.clear();
     console.log('All localStorage cleared');
 
-    // Clear URL hash (remove OAuth token from URL)
-    if (window.location.hash) {
+    if (window.location.search) {
       window.history.replaceState(null, '', window.location.pathname);
-      console.log('URL hash cleared');
+      console.log('URL query cleared');
     }
 
-    // Clear all state
     setInfluencer(null);
     setError(null);
     setLoading(false);
     console.log('All state cleared');
-
-    // Verify everything is clean
-    const currentStorage = localStorage.getItem('influencer');
-    console.log('Verify localStorage is empty:', currentStorage);
-    console.log('Verify URL hash is empty:', window.location.hash);
-    console.log('Current influencer state:', influencer);
   };
 
   console.log('\n[App Render] Component rendering');

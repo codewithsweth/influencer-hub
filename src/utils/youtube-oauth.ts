@@ -2,7 +2,7 @@ import { OAuthConfig } from '../types/influencer';
 
 const OAUTH_CONFIG: OAuthConfig = {
   clientId: '418254354787-i4qruhsk2e926pbp4eifcpfbr4mug32i.apps.googleusercontent.com',
-  redirectUri: window.location.origin + '/oauth/callback',
+  redirectUri: window.location.origin,
   scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/userinfo.profile',
 };
 
@@ -15,8 +15,10 @@ export const generateAuthUrl = (): string => {
   const params = new URLSearchParams({
     client_id: OAUTH_CONFIG.clientId,
     redirect_uri: OAUTH_CONFIG.redirectUri,
-    response_type: 'token',
+    response_type: 'code',
     scope: OAUTH_CONFIG.scope,
+    access_type: 'offline',
+    prompt: 'consent',
   });
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -26,12 +28,10 @@ export const generateAuthUrl = (): string => {
 
 export const parseOAuthCallback = (): string | null => {
   console.log('\n[OAuth] Parsing OAuth callback');
-  const hash = window.location.hash.substring(1);
-  console.log('[OAuth] Hash from URL:', hash);
-  const params = new URLSearchParams(hash);
-  const accessToken = params.get('access_token');
-  console.log('[OAuth] Extracted access token:', accessToken ? 'Present' : 'Not found');
-  return accessToken;
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  console.log('[OAuth] Extracted authorization code:', code ? 'Present' : 'Not found');
+  return code;
 };
 
 export const clearOAuthCallback = (): void => {

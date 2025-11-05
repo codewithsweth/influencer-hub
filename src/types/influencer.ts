@@ -86,7 +86,6 @@ export interface Influencer {
   videos: YouTubeVideo[];
   popularVideos: YouTubeVideo[];
   analytics?: ChannelAnalytics;
-  accessToken: string;
   connectedAt: string;
 }
 
